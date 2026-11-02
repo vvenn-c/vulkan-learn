@@ -1,0 +1,17 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}\\vulkan-learn.exe",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "console": "externalTerminal",
+      "preLaunchTask": "build"
+    }
+  ]
+}
