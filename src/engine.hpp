@@ -33,5 +33,6 @@ class Engine {
 
         // initVulkan() helpers
         VkResult createInstance();
+        VkResult selectDevice(uint32_t deviceIndex);
 
 };
