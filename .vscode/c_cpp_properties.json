@@ -6,7 +6,7 @@
     "intelliSenseMode": "windows-gcc-x64",
     "includePath": [
       "${workspaceFolder}/src",
-      "C:/VulkanSDK/1.4.363.0/Include"
+      "C:/VulkanSDK/1.4.363.1/Include"
     ]
   }],
   "version": 4

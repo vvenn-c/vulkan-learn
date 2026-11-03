@@ -1,8 +1,8 @@
 CXX := C:/msys64/ucrt64/bin/g++.exe
-VULKAN_LIB := C:\VulkanSDK\1.4.363.0\Lib
+VULKAN_LIB := C:\VulkanSDK\1.4.363.1\Lib
 
-CXXFLAGS := -std=c++23 -O2 \
-	-IC:\VulkanSDK\1.4.363.0\Include
+CXXFLAGS := -std=c++26 -O2 \
+	-IC:\VulkanSDK\1.4.363.1\Include
 
 VULKAN_LIBS := $(VULKAN_LIB)/vulkan-1.lib
 GLFW_LIB := C:/msys64/ucrt64/lib/libglfw3.a
