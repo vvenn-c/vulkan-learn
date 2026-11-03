@@ -5,10 +5,9 @@ CXXFLAGS := -std=c++26 -O2 \
 	-IC:\VulkanSDK\1.4.363.1\Include
 
 VULKAN_LIBS := $(VULKAN_LIB)/vulkan-1.lib
-GLFW_LIB := C:/msys64/ucrt64/lib/libglfw3.a
-SYSTEM_LIBS := -lopengl32 -lgdi32 -luser32 -lshell32 -lwinmm
+SYSTEM_LIBS := -lstdc++exp
 
 SOURCES := $(wildcard src/*.cpp)
 vulkan-learn.exe: $(SOURCES)
 	@echo building...
-	@$(CXX) $(CXXFLAGS) -o $@ $^ $(VULKAN_LIBS) $(GLFW_LIB) $(SYSTEM_LIBS)
+	@$(CXX) $(CXXFLAGS) -o $@ $^ $(VULKAN_LIBS) $(SYSTEM_LIBS)

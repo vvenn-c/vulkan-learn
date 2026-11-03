@@ -3,8 +3,8 @@
     "tasks": [
         {
             "label": "build",
-            "type": "shell",
-            "command": "make",
+            "type": "process",
+            "command": "C:\\msys64\\usr\\bin\\make.exe",
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -13,7 +13,7 @@
     ],
     "presentation": {
         "echo": true,
-        "reveal": "silent",
+        "reveal": "never",
         "focus": false,
         "panel": "shared",
         "showReuseMessage": true,
