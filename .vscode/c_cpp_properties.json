@@ -2,7 +2,7 @@
   "configurations": [{
     "name": "OF",
     "compilerPath": "C:/msys64/ucrt64/bin/g++.exe",
-    "cppStandard": "c++23",
+    "cppStandard": "c++26",
     "intelliSenseMode": "windows-gcc-x64",
     "includePath": [
       "${workspaceFolder}/src",
