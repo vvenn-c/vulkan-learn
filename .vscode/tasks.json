@@ -4,7 +4,7 @@
         {
             "label": "build",
             "type": "process",
-            "command": "make",
+            "command": "C:\\msys64\\usr\\bin\\make.exe",
             "group": {
                 "kind": "build",
                 "isDefault": true
