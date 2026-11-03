@@ -4,9 +4,7 @@ void Engine::run() {
 
     initWindow();
     initVulkan();
-
     loop();
-
     cleanup();
 
 }
@@ -16,7 +14,7 @@ void Engine::initWindow() {
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
-    window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "vulkan-learn", nullptr, nullptr);
+    window_ = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, appName, nullptr, nullptr);
 
 }
 
@@ -28,7 +26,7 @@ void Engine::initVulkan() {
 }
 
 void Engine::loop() {
-    while (!glfwWindowShouldClose(window)) {
+    while (!glfwWindowShouldClose(window_)) {
 
         glfwPollEvents();
 
@@ -37,9 +35,9 @@ void Engine::loop() {
 
 void Engine::cleanup() {
 
-    vkDestroyInstance(instance, nullptr);
+    vkDestroyInstance(instance_, nullptr);
 
-    glfwDestroyWindow(window);
+    glfwDestroyWindow(window_);
     glfwTerminate();
 
 }
@@ -48,7 +46,7 @@ VkResult Engine::createInstance() {
 
     VkApplicationInfo appInfo {
         .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-        .pApplicationName = "vulkan-learn",
+        .pApplicationName = appName,
         .apiVersion = VK_API_VERSION_1_3
     };
 
@@ -62,6 +60,6 @@ VkResult Engine::createInstance() {
         .ppEnabledExtensionNames = instanceExtensions
     };
 
-    return vkCreateInstance(&instanceCI, nullptr, &instance);
+    return vkCreateInstance(&instanceCI, nullptr, &instance_);
 
 }

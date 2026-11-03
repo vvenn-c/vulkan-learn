@@ -6,7 +6,7 @@
 
 int main() {
 
-    Engine app;
+    Engine app("vulkan-learn", 1080, 720);
 
     try {
 

@@ -4,6 +4,7 @@
 #include <vulkan/vulkan.h>
 
 #include <iostream>
+#include <vector>
 
 class Engine {
 
@@ -11,13 +12,18 @@ class Engine {
 
         void run();
 
-        uint32_t WINDOW_WIDTH = 1080;
-        uint32_t WINDOW_HEIGHT = 720;
+        const char* appName;
+        uint32_t WINDOW_WIDTH, WINDOW_HEIGHT;
+
+        Engine(const char* appName, uint32_t WINDOW_WIDTH, uint32_t WINDOW_HEIGHT):
+            appName(appName),
+            WINDOW_WIDTH(WINDOW_WIDTH),
+            WINDOW_HEIGHT(WINDOW_HEIGHT) {};
 
     private:
 
-        GLFWwindow* window;
-        VkInstance instance;
+        GLFWwindow* window_;
+        VkInstance instance_;
 
         // main
         void initWindow();
