@@ -67,6 +67,8 @@ VkResult Engine::createInstance() {
 
 }
 
+// selects the physical device
+// and creates a logical device to communicate with it
 VkResult Engine::selectDevice(uint32_t deviceIndex) {
 
     VkResult result;
@@ -111,12 +113,49 @@ VkResult Engine::selectDevice(uint32_t deviceIndex) {
         return VK_ERROR_FEATURE_NOT_PRESENT;
 
     const float qfPriorities = 1.0f;
-    VkDeviceQueueCreateInfo {
+    VkDeviceQueueCreateInfo queueCI {
         .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
         .queueFamilyIndex = queueFamily,
         .queueCount = 1,
         .pQueuePriorities = &qfPriorities
     };
+
+    const std::vector<const char*> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+
+    VkPhysicalDeviceVulkan12Features enabledVk12Featrues {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+        .descriptorIndexing = true,
+        .shaderSampledImageArrayNonUniformIndexing = true,
+        .descriptorBindingVariableDescriptorCount = true,
+        .runtimeDescriptorArray = true,
+        .bufferDeviceAddress = true
+    };
+
+    VkPhysicalDeviceVulkan13Features enabledVk13Features {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+        .pNext = &enabledVk12Featrues,
+        .synchronization2 = true,
+        .dynamicRendering = true
+    };
+
+    VkPhysicalDeviceFeatures enabledVk10Features {
+        .samplerAnisotropy = VK_TRUE
+    };
+
+    VkDeviceCreateInfo deviceCI {
+        .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+        .pNext = &enabledVk13Features,
+        .queueCreateInfoCount = 1,
+        .pQueueCreateInfos = &queueCI,
+        .enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size()),
+        .ppEnabledExtensionNames = deviceExtensions.data(),
+        .pEnabledFeatures = &enabledVk10Features
+    };
+
+    result = vkCreateDevice(devices[deviceIndex], &deviceCI, nullptr, &device_);
+    if (result != VK_SUCCESS) return result;
+
+    vkGetDeviceQueue(device_, queueFamily, 0, &queue_);
 
     return VK_SUCCESS;
     

@@ -24,6 +24,8 @@ class Engine {
 
         GLFWwindow* window_;
         VkInstance instance_;
+        VkDevice device_;
+        VkQueue queue_;
 
         // main
         void initWindow();
