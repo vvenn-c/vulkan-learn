@@ -12,3 +12,4 @@ SYSTEM_LIBS := -lstdc++exp
 vulkan-learn.exe: $(wildcard src/*.cpp) $(wildcard src/*.hpp)
 	@echo building...
 	@$(CXX) $(CXXFLAGS) -o $@ $(wildcard src/*.cpp) $(VULKAN_LIBS) $(SYSTEM_LIBS)
+	@echo done!

@@ -1,5 +1,3 @@
-#include <string>
-
 #include <vulkan/vulkan.h>
 
 class Engine {
@@ -24,9 +22,8 @@ private:
     void loop();
     void cleanup();
 
-    VkInstance instance_;
-
-    template<auto Fn>
-    VkResult checkError(VkResult result);
+    // error handling
+    template<auto func>
+    VkResult checkError(const VkResult result);
 
 };
