@@ -1,6 +1,6 @@
 {
   "configurations": [{
-    "name": "OF",
+    "name": "vulkan",
     "compilerPath": "C:/msys64/ucrt64/bin/g++.exe",
     "cppStandard": "c++26",
     "intelliSenseMode": "windows-gcc-x64",
