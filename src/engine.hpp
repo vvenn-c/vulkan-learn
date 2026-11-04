@@ -24,6 +24,9 @@ private:
     void loop();
     void cleanup();
 
-    void checkError(VkResult result, const std::string& funcName);
+    VkInstance instance_;
+
+    template<auto Fn>
+    VkResult checkError(VkResult result);
 
 };
