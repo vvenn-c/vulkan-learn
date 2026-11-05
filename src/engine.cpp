@@ -3,10 +3,10 @@
 #include <cstdio>
 #include <vector>
 
-#define VOLK_IMPLEMENTATION
-
 #include <vulkan/vulkan.h>
 #include <vulkan/vk_enum_string_helper.h>
+
+#define VOLK_IMPLEMENTATION
 #include <Volk/volk.h>
 
 #include <SDL3/SDL.h>
@@ -25,11 +25,14 @@ void Engine::run() {
 
 void Engine::initVulkan() {
 
-    if (createInstance() != VK_SUCCESS) 
+    if (!createInstance()) 
         throw std::runtime_error("failed to create vulkan instance");
 
     if (!createSurface())
         throw std::runtime_error("failed to create surface");
+
+    if (physicalDevice = findPhysicalDevice(); !physicalDevice)
+        throw std::runtime_error("could not find appropriate physical device");
 
 }
 
@@ -51,7 +54,7 @@ void Engine::initWindow() {
 }
 
 void Engine::loop() {
-
+    
 }
 
 void Engine::cleanup() {
@@ -64,7 +67,7 @@ void Engine::cleanup() {
 
 }
 
-VkResult Engine::createInstance() {
+bool Engine::createInstance() {
 
     VkApplicationInfo appInfo {
         .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
@@ -106,7 +109,8 @@ VkResult Engine::createInstance() {
     VkResult result = checkError(vkCreateInstance(&instanceCI, nullptr, &vulkanInstance));
     volkLoadInstance(vulkanInstance);
 
-    return result;
+    if (result != VK_SUCCESS) return false;
+    else return true;
 
 }
 
@@ -116,20 +120,36 @@ bool Engine::createSurface() {
 
 }
 
-VkResult Engine::checkError(const VkResult result) {
+// just gets the first discrete GPU it finds
+VkPhysicalDevice Engine::findPhysicalDevice() {
 
-    if (result < VK_SUCCESS) {
+    uint32_t physicalDeviceCount = 0;
+    vkEnumeratePhysicalDevices(vulkanInstance, &physicalDeviceCount, nullptr);
 
-        throw std::runtime_error(
-            std::format(
-                "vulkan function returned an error: {}",
-                string_VkResult(result)
-            )
-        );
+    std::vector<VkPhysicalDevice> physicalDevices(physicalDeviceCount);
+    vkEnumeratePhysicalDevices(vulkanInstance, &physicalDeviceCount, physicalDevices.data());
+
+    if (physicalDeviceCount > 0) {
+
+        for (auto &device : physicalDevices) {
+
+            VkPhysicalDeviceProperties deviceProperties{};
+            vkGetPhysicalDeviceProperties(device, &deviceProperties);
+
+            if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+                return device;
+
+        }
 
     }
 
-    if (result > VK_SUCCESS) {
+    return nullptr;
+
+}
+
+VkResult Engine::checkError(const VkResult result) {
+
+    if (result != VK_SUCCESS) {
 
         std::println(
             stderr,

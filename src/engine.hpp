@@ -26,11 +26,13 @@ private:
     SDL_Window* window = nullptr;
     VkSurfaceKHR surface = nullptr;
     VkInstance vulkanInstance = nullptr;
+    VkPhysicalDevice physicalDevice;
 
     constexpr static uint32_t vulkanVersion = VK_API_VERSION_1_4;
 
-    VkResult createInstance();
+    bool createInstance();
     bool createSurface();
+
     VkPhysicalDevice findPhysicalDevice();
 
     // error handling
