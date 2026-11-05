@@ -5,9 +5,6 @@ class Engine {
 
 public:
 
-    const char* windowName;
-    uint32_t windowWidth, windowHeight;
-
     Engine(const char* windowName, uint32_t windowWidth, uint32_t windowHeight):
         windowName(windowName),
         windowWidth(windowWidth),
@@ -16,26 +13,30 @@ public:
 
     void run();
 
+    const char* windowName;
+    uint32_t windowWidth, windowHeight;
+
 private:
 
-    void initVulkan();
-    void initWindow();
-    void loop();
-    void cleanup();
+    constexpr static uint32_t vulkanVersion = VK_API_VERSION_1_4;
 
     SDL_Window* window = nullptr;
     VkSurfaceKHR surface = nullptr;
     VkInstance vulkanInstance = nullptr;
     VkPhysicalDevice physicalDevice;
 
-    constexpr static uint32_t vulkanVersion = VK_API_VERSION_1_4;
+    // main
+    void initVulkan();
+    void initWindow();
+    void loop();
+    void cleanup();
 
+    // vulkan init helpers
     bool createInstance();
     bool createSurface();
+    bool selectPhysicalDevice();
 
-    VkPhysicalDevice findPhysicalDevice();
-
-    // error handling
+    // error handling stuff
     VkResult checkError(const VkResult result);
 
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(

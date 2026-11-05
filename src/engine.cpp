@@ -31,7 +31,7 @@ void Engine::initVulkan() {
     if (!createSurface())
         throw std::runtime_error("failed to create surface");
 
-    if (physicalDevice = findPhysicalDevice(); !physicalDevice)
+    if (!selectPhysicalDevice())
         throw std::runtime_error("could not find appropriate physical device");
 
 }
@@ -54,7 +54,7 @@ void Engine::initWindow() {
 }
 
 void Engine::loop() {
-    
+
 }
 
 void Engine::cleanup() {
@@ -121,7 +121,7 @@ bool Engine::createSurface() {
 }
 
 // just gets the first discrete GPU it finds
-VkPhysicalDevice Engine::findPhysicalDevice() {
+bool Engine::selectPhysicalDevice() {
 
     uint32_t physicalDeviceCount = 0;
     vkEnumeratePhysicalDevices(vulkanInstance, &physicalDeviceCount, nullptr);
@@ -130,20 +130,22 @@ VkPhysicalDevice Engine::findPhysicalDevice() {
     vkEnumeratePhysicalDevices(vulkanInstance, &physicalDeviceCount, physicalDevices.data());
 
     if (physicalDeviceCount > 0) {
-
         for (auto &device : physicalDevices) {
 
             VkPhysicalDeviceProperties deviceProperties{};
             vkGetPhysicalDeviceProperties(device, &deviceProperties);
 
-            if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
-                return device;
+            if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
+
+                physicalDevice = device;
+                return true;
+
+            }
 
         }
-
     }
 
-    return nullptr;
+    return false;
 
 }
 
