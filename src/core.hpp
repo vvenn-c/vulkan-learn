@@ -5,11 +5,11 @@
 #include <vma/vk_mem_alloc.h>
 #include <SDL3/SDL.h>
 
-class Engine {
+class Core {
 
 public:
 
-    Engine(const char* windowName, uint32_t windowWidth, uint32_t windowHeight):
+    Core(const char* windowName, uint32_t windowWidth, uint32_t windowHeight):
         windowName_(windowName),
         windowWidth_(windowWidth),
         windowHeight_(windowHeight) 

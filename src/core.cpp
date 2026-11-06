@@ -15,9 +15,9 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_vulkan.h>
 
-#include "engine.hpp"
+#include "core.hpp"
 
-void Engine::run() {
+void Core::run() {
 
     initWindow();
     initVulkan();
@@ -26,7 +26,7 @@ void Engine::run() {
 
 }
 
-void Engine::initWindow() {
+void Core::initWindow() {
 
     if (SDL_InitSubSystem(SDL_INIT_VIDEO)) {
 
@@ -43,7 +43,7 @@ void Engine::initWindow() {
 
 }
 
-void Engine::initVulkan() {
+void Core::initVulkan() {
 
     if (!createInstance()) 
         throw std::runtime_error("failed to create vulkan instance");
@@ -71,11 +71,11 @@ void Engine::initVulkan() {
 
 }
 
-void Engine::loop() {
+void Core::loop() {
 
 }
 
-void Engine::cleanup() {
+void Core::cleanup() {
 
     destroySwapchain();
 
@@ -93,7 +93,7 @@ void Engine::cleanup() {
 
 }
 
-bool Engine::createInstance() {
+bool Core::createInstance() {
 
     VkApplicationInfo appInfo {
         .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
@@ -140,7 +140,7 @@ bool Engine::createInstance() {
 
 }
 
-bool Engine::createSurface() {
+bool Core::createSurface() {
 
     return SDL_Vulkan_CreateSurface(window_, vulkanInstance_, nullptr, &surface_);
 
@@ -148,7 +148,7 @@ bool Engine::createSurface() {
 
 // just gets the first discrete GPU it finds
 // else return the first GPU it finds
-bool Engine::findPhysicalDevice() {
+bool Core::findPhysicalDevice() {
 
     uint32_t physicalDeviceCount = 0;
     vkEnumeratePhysicalDevices(vulkanInstance_, &physicalDeviceCount, nullptr);
@@ -165,14 +165,14 @@ bool Engine::findPhysicalDevice() {
 
             if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
 
-                Engine::physicalDevice_ = device;
+                Core::physicalDevice_ = device;
                 return true;
 
             }
 
         }
 
-        Engine::physicalDevice_ = physicalDevices[0];
+        Core::physicalDevice_ = physicalDevices[0];
 
     }
 
@@ -180,7 +180,7 @@ bool Engine::findPhysicalDevice() {
 
 }
 
-bool Engine::checkFormatSupported() {
+bool Core::checkFormatSupported() {
 
     uint32_t formatCount = 0;
     vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice_, surface_, &formatCount, nullptr);
@@ -199,7 +199,7 @@ bool Engine::checkFormatSupported() {
 
 }
 
-bool Engine::findGraphicsQueueIndex() {
+bool Core::findGraphicsQueueIndex() {
 
     uint32_t queueFamilyCount = 0;
     vkGetPhysicalDeviceQueueFamilyProperties2(physicalDevice_, &queueFamilyCount, nullptr);
@@ -220,7 +220,7 @@ bool Engine::findGraphicsQueueIndex() {
         const auto &properties = queueFamilyProperties[currentFamilyIndex];
         if (properties.queueFamilyProperties.queueFlags & VK_QUEUE_GRAPHICS_BIT && hasPresentSupport) {
 
-            Engine::graphicsQueueFamilyIndex_ = currentFamilyIndex;
+            Core::graphicsQueueFamilyIndex_ = currentFamilyIndex;
             return true;
 
         }
@@ -231,7 +231,7 @@ bool Engine::findGraphicsQueueIndex() {
 
 }
 
-bool Engine::createLogicalDevice() {
+bool Core::createLogicalDevice() {
 
     // query supported features
     // this linked list is made specifically to check if certain features are available.
@@ -327,7 +327,7 @@ bool Engine::createLogicalDevice() {
 
 }
 
-bool Engine::initVMA() {
+bool Core::initVMA() {
 
     VmaVulkanFunctions vmaFunctionsInfo{};
 
@@ -349,7 +349,7 @@ bool Engine::initVMA() {
 
 }
 
-bool Engine::createSwapchain() {
+bool Core::createSwapchain() {
 
     swapchainWidth_ = windowWidth_;
     swapchainHeight_ = windowHeight_;
@@ -487,7 +487,7 @@ bool Engine::createSwapchain() {
 
 }
 
-void Engine::destroySwapchain() {
+void Core::destroySwapchain() {
 
     // destroy image views
     for (VkImageView &swapchainImageView : swapchainImageViews_)
@@ -516,7 +516,7 @@ void Engine::destroySwapchain() {
 
 }
 
-VkResult Engine::checkError(const VkResult result) {
+VkResult Core::checkError(const VkResult result) {
 
     if (result != VK_SUCCESS) {
 
@@ -532,7 +532,7 @@ VkResult Engine::checkError(const VkResult result) {
 
 }
 
-VkResult Engine::checkError(const VkResult result, const char* errorString) {
+VkResult Core::checkError(const VkResult result, const char* errorString) {
 
     if (result != VK_SUCCESS) {
 
@@ -549,7 +549,7 @@ VkResult Engine::checkError(const VkResult result, const char* errorString) {
 
 }
 
-VKAPI_ATTR VkBool32 VKAPI_CALL Engine::debugCallback(
+VKAPI_ATTR VkBool32 VKAPI_CALL Core::debugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
     VkDebugUtilsMessageTypeFlagsEXT messageType,
     const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,

@@ -1,11 +1,11 @@
 #include <print>
 #include <stdexcept>
 
-#include "engine.hpp"
+#include "core.hpp"
 
 int main() {
 
-    Engine app("vulkan-learn", 1080, 720);
+    Core app("vulkan-learn", 1080, 720);
 
     try {
 
