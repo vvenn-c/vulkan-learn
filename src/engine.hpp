@@ -23,7 +23,10 @@ private:
     SDL_Window* window = nullptr;
     VkSurfaceKHR surface = nullptr;
     VkInstance vulkanInstance = nullptr;
-    VkPhysicalDevice physicalDevice;
+    VkPhysicalDevice physicalDevice = nullptr;
+
+    uint32_t graphicsQueueFamilyIndex = UINT32_MAX;
+    VkQueue graphicsQueue = nullptr;
 
     // main
     void initVulkan();
@@ -34,7 +37,8 @@ private:
     // vulkan init helpers
     bool createInstance();
     bool createSurface();
-    bool selectPhysicalDevice();
+    bool findPhysicalDevice();
+    bool findGraphicsQueueIndex();
 
     // error handling stuff
     VkResult checkError(const VkResult result);

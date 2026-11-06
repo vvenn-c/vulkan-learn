@@ -31,8 +31,11 @@ void Engine::initVulkan() {
     if (!createSurface())
         throw std::runtime_error("failed to create surface");
 
-    if (!selectPhysicalDevice())
+    if (!findPhysicalDevice())
         throw std::runtime_error("could not find appropriate physical device");
+
+    if (!findGraphicsQueueIndex())
+        throw std::runtime_error("could not find compatible graphics queue");
 
 }
 
@@ -121,7 +124,8 @@ bool Engine::createSurface() {
 }
 
 // just gets the first discrete GPU it finds
-bool Engine::selectPhysicalDevice() {
+// else return the first GPU it finds
+bool Engine::findPhysicalDevice() {
 
     uint32_t physicalDeviceCount = 0;
     vkEnumeratePhysicalDevices(vulkanInstance, &physicalDeviceCount, nullptr);
@@ -130,6 +134,7 @@ bool Engine::selectPhysicalDevice() {
     vkEnumeratePhysicalDevices(vulkanInstance, &physicalDeviceCount, physicalDevices.data());
 
     if (physicalDeviceCount > 0) {
+
         for (auto &device : physicalDevices) {
 
             VkPhysicalDeviceProperties deviceProperties{};
@@ -137,12 +142,47 @@ bool Engine::selectPhysicalDevice() {
 
             if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
 
-                physicalDevice = device;
+                Engine::physicalDevice = device;
                 return true;
 
             }
 
         }
+
+        Engine::physicalDevice = physicalDevices[0];
+
+    }
+
+    return false;
+
+}
+
+bool Engine::findGraphicsQueueIndex() {
+
+    uint32_t queueFamilyCount = 0;
+    vkGetPhysicalDeviceQueueFamilyProperties2(physicalDevice, &queueFamilyCount, nullptr);
+
+    // initialize a vector of size queueFamilyCount, and fill each element with a structure
+    // with the appropriate sType "QUEUE_FAMILY_PROPERTIES_2"
+    std::vector<VkQueueFamilyProperties2> queueFamilyProperties(queueFamilyCount,
+        { .sType = VK_STRUCTURE_TYPE_QUEUE_FAMILY_PROPERTIES_2 }
+    );
+
+    vkGetPhysicalDeviceQueueFamilyProperties2(physicalDevice, &queueFamilyCount, queueFamilyProperties.data());
+
+    for (int currentFamilyIndex = 0; currentFamilyIndex < queueFamilyProperties.size(); currentFamilyIndex++) {
+
+        VkBool32 hasPresentSupport = VK_FALSE;
+        vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, currentFamilyIndex, surface, &hasPresentSupport);
+
+        const auto &properties = queueFamilyProperties[currentFamilyIndex];
+        if (properties.queueFamilyProperties.queueFlags & VK_QUEUE_GRAPHICS_BIT && hasPresentSupport) {
+
+            Engine::graphicsQueueFamilyIndex = currentFamilyIndex;
+            return true;
+
+        }
+
     }
 
     return false;
