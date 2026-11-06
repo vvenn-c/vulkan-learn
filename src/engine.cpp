@@ -23,6 +23,23 @@ void Engine::run() {
 
 }
 
+void Engine::initWindow() {
+
+    if (SDL_InitSubSystem(SDL_INIT_VIDEO)) {
+
+        window_ = SDL_CreateWindow(
+            windowName_, 
+            windowWidth_, windowHeight_, 
+            SDL_WINDOW_VULKAN |
+            SDL_WINDOW_RESIZABLE
+        );
+
+    }
+
+    if (!window_) throw std::runtime_error("failed to create SDL window");
+
+}
+
 void Engine::initVulkan() {
 
     if (!createInstance()) 
@@ -42,33 +59,16 @@ void Engine::initVulkan() {
 
 }
 
-void Engine::initWindow() {
-
-    if (SDL_InitSubSystem(SDL_INIT_VIDEO)) {
-
-        window = SDL_CreateWindow(
-            windowName, 
-            windowWidth, windowHeight, 
-            SDL_WINDOW_VULKAN |
-            SDL_WINDOW_RESIZABLE
-        );
-
-    }
-
-    if (!window) throw std::runtime_error("failed to create SDL window");
-
-}
-
 void Engine::loop() {
 
 }
 
 void Engine::cleanup() {
 
-    if (vulkanInstance) vkDestroyInstance(vulkanInstance, nullptr);
+    if (vulkanInstance_) vkDestroyInstance(vulkanInstance_, nullptr);
     volkFinalize();
 
-    if (window) SDL_DestroyWindow(window);
+    if (window_) SDL_DestroyWindow(window_);
     SDL_Quit();
 
 }
@@ -77,8 +77,8 @@ bool Engine::createInstance() {
 
     VkApplicationInfo appInfo {
         .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-        .pApplicationName = windowName,
-        .apiVersion = vulkanVersion
+        .pApplicationName = windowName_,
+        .apiVersion = vulkanVersion_
     };
 
     uint32_t extensionCount = 0;
@@ -112,8 +112,8 @@ bool Engine::createInstance() {
         .ppEnabledExtensionNames = requestedExtensions.data()
     };
 
-    VkResult result = checkError(vkCreateInstance(&instanceCI, nullptr, &vulkanInstance));
-    volkLoadInstance(vulkanInstance);
+    VkResult result = checkError(vkCreateInstance(&instanceCI, nullptr, &vulkanInstance_));
+    volkLoadInstance(vulkanInstance_);
 
     if (result != VK_SUCCESS) return false;
     else return true;
@@ -122,7 +122,7 @@ bool Engine::createInstance() {
 
 bool Engine::createSurface() {
 
-    return SDL_Vulkan_CreateSurface(window, vulkanInstance, nullptr, &surface);
+    return SDL_Vulkan_CreateSurface(window_, vulkanInstance_, nullptr, &surface_);
 
 }
 
@@ -131,10 +131,10 @@ bool Engine::createSurface() {
 bool Engine::findPhysicalDevice() {
 
     uint32_t physicalDeviceCount = 0;
-    vkEnumeratePhysicalDevices(vulkanInstance, &physicalDeviceCount, nullptr);
+    vkEnumeratePhysicalDevices(vulkanInstance_, &physicalDeviceCount, nullptr);
 
     std::vector<VkPhysicalDevice> physicalDevices(physicalDeviceCount);
-    vkEnumeratePhysicalDevices(vulkanInstance, &physicalDeviceCount, physicalDevices.data());
+    vkEnumeratePhysicalDevices(vulkanInstance_, &physicalDeviceCount, physicalDevices.data());
 
     if (physicalDeviceCount > 0) {
 
@@ -145,14 +145,14 @@ bool Engine::findPhysicalDevice() {
 
             if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
 
-                Engine::physicalDevice = device;
+                Engine::physicalDevice_ = device;
                 return true;
 
             }
 
         }
 
-        Engine::physicalDevice = physicalDevices[0];
+        Engine::physicalDevice_ = physicalDevices[0];
 
     }
 
@@ -163,7 +163,7 @@ bool Engine::findPhysicalDevice() {
 bool Engine::findGraphicsQueueIndex() {
 
     uint32_t queueFamilyCount = 0;
-    vkGetPhysicalDeviceQueueFamilyProperties2(physicalDevice, &queueFamilyCount, nullptr);
+    vkGetPhysicalDeviceQueueFamilyProperties2(physicalDevice_, &queueFamilyCount, nullptr);
 
     // initialize a vector of size queueFamilyCount, and fill each element with a structure
     // with the appropriate sType "QUEUE_FAMILY_PROPERTIES_2"
@@ -171,17 +171,17 @@ bool Engine::findGraphicsQueueIndex() {
         { .sType = VK_STRUCTURE_TYPE_QUEUE_FAMILY_PROPERTIES_2 }
     );
 
-    vkGetPhysicalDeviceQueueFamilyProperties2(physicalDevice, &queueFamilyCount, queueFamilyProperties.data());
+    vkGetPhysicalDeviceQueueFamilyProperties2(physicalDevice_, &queueFamilyCount, queueFamilyProperties.data());
 
     for (int currentFamilyIndex = 0; currentFamilyIndex < queueFamilyProperties.size(); currentFamilyIndex++) {
 
         VkBool32 hasPresentSupport = VK_FALSE;
-        vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, currentFamilyIndex, surface, &hasPresentSupport);
+        vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice_, currentFamilyIndex, surface_, &hasPresentSupport);
 
         const auto &properties = queueFamilyProperties[currentFamilyIndex];
         if (properties.queueFamilyProperties.queueFlags & VK_QUEUE_GRAPHICS_BIT && hasPresentSupport) {
 
-            Engine::graphicsQueueFamilyIndex = currentFamilyIndex;
+            Engine::graphicsQueueFamilyIndex_ = currentFamilyIndex;
             return true;
 
         }
@@ -255,7 +255,7 @@ bool Engine::createLogicalDevice() {
     std::vector<float> queuePriorities = { 1.0f };
     VkDeviceQueueCreateInfo graphicsQueueCI {
         .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-        .queueFamilyIndex = graphicsQueueFamilyIndex,
+        .queueFamilyIndex = graphicsQueueFamilyIndex_,
         .queueCount = 1,
         .pQueuePriorities = queuePriorities.data()
     };
@@ -271,13 +271,13 @@ bool Engine::createLogicalDevice() {
     };
 
     VkResult result = checkError(
-        vkCreateDevice(physicalDevice, &deviceCI, nullptr, &logicalDevice)
+        vkCreateDevice(physicalDevice_, &deviceCI, nullptr, &logicalDevice_)
     );
 
     if (result != VK_SUCCESS) return false;
 
-    vkGetDeviceQueue(logicalDevice, graphicsQueueFamilyIndex, 0, &graphicsQueue);
-    if (!graphicsQueue) {
+    vkGetDeviceQueue(logicalDevice_, graphicsQueueFamilyIndex_, 0, &graphicsQueue_);
+    if (!graphicsQueue_) {
 
         std::println(stderr, "could not get the graphics queue");
         return false;

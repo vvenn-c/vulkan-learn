@@ -6,28 +6,28 @@ class Engine {
 public:
 
     Engine(const char* windowName, uint32_t windowWidth, uint32_t windowHeight):
-        windowName(windowName),
-        windowWidth(windowWidth),
-        windowHeight(windowHeight) 
+        windowName_(windowName),
+        windowWidth_(windowWidth),
+        windowHeight_(windowHeight) 
     {};
 
     void run();
 
-    const char* windowName;
-    uint32_t windowWidth, windowHeight;
+    const char* windowName_;
+    uint32_t windowWidth_, windowHeight_;
 
 private:
 
-    constexpr static uint32_t vulkanVersion = VK_API_VERSION_1_4;
+    constexpr static uint32_t vulkanVersion_ = VK_API_VERSION_1_4;
 
-    SDL_Window* window = nullptr;
-    VkSurfaceKHR surface = nullptr;
-    VkInstance vulkanInstance = nullptr;
-    VkPhysicalDevice physicalDevice = nullptr;
-    VkDevice logicalDevice = nullptr;
+    SDL_Window* window_ = nullptr;
+    VkSurfaceKHR surface_ = nullptr;
+    VkInstance vulkanInstance_ = nullptr;
+    VkPhysicalDevice physicalDevice_ = nullptr;
+    VkDevice logicalDevice_ = nullptr;
 
-    uint32_t graphicsQueueFamilyIndex = UINT32_MAX;
-    VkQueue graphicsQueue = nullptr;
+    uint32_t graphicsQueueFamilyIndex_ = UINT32_MAX;
+    VkQueue graphicsQueue_ = nullptr;
 
     // main
     void initVulkan();
