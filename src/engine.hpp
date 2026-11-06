@@ -33,6 +33,10 @@ private:
     VkDevice logicalDevice_ = nullptr;
     VmaAllocator vmaAllocator_ = nullptr;
 
+    // queue stuff
+    uint32_t graphicsQueueFamilyIndex_ = UINT32_MAX;
+    VkQueue graphicsQueue_ = nullptr;
+
     // swapchain stuff
     VkSwapchainKHR swapchain_ = nullptr;
     uint32_t swapchainWidth_, swapchainHeight_;
@@ -47,13 +51,9 @@ private:
     constexpr static VkFormat swapchainFormat_ = VK_FORMAT_B8G8R8A8_SRGB;
     constexpr static VkFormat depthImageFormat_ = VK_FORMAT_D32_SFLOAT;
 
-    // queue stuff
-    uint32_t graphicsQueueFamilyIndex_ = UINT32_MAX;
-    VkQueue graphicsQueue_ = nullptr;
-
     // main
-    void initVulkan();
     void initWindow();
+    void initVulkan();
     void loop();
     void cleanup();
 
@@ -71,6 +71,7 @@ private:
 
     // error handling stuff
     VkResult checkError(const VkResult result);
+    VkResult checkError(const VkResult result, const char* errorString);
 
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
         VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,

@@ -2,7 +2,7 @@ CXX := g++.exe
 
 VULKAN := C:/VulkanSDK/1.4.363.1
 
-CXXFLAGS := -std=c++26 -O2 -freflection -DVK_NO_PROTOTYPES \
+CXXFLAGS := -std=c++26 -O2 -DVK_NO_PROTOTYPES \
 	-I$(VULKAN)/Include \
 	-L$(VULKAN)/Lib
 

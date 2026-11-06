@@ -390,8 +390,10 @@ bool Engine::createSwapchain() {
         .presentMode = VK_PRESENT_MODE_FIFO_KHR
     };
 
-    result = checkError(vkCreateSwapchainKHR(logicalDevice_, &swapchainCI, nullptr, &swapchain_));
-    if (result != VK_SUCCESS) return false;
+    result = checkError(
+        vkCreateSwapchainKHR(logicalDevice_, &swapchainCI, nullptr, &swapchain_),
+        "failed to create the swapchain"
+    ); if (result != VK_SUCCESS) return false;
     
     uint32_t imageCount = 0;
     vkGetSwapchainImagesKHR(logicalDevice_, swapchain_, &imageCount, nullptr);
@@ -416,9 +418,11 @@ bool Engine::createSwapchain() {
             },
         };
 
-        result = checkError(vkCreateImageView(logicalDevice_, &imageViewCI, nullptr, &swapchainImageViews_[i]));
-        if (result != VK_SUCCESS) return false;
-
+        result = checkError(
+            vkCreateImageView(logicalDevice_, &imageViewCI, nullptr, &swapchainImageViews_[i]),
+            "failed to create image view"
+        ); if (result != VK_SUCCESS) return false;
+        
     }
 
     renderCompleteSemaphores_.resize(swapchainImages_.size());
@@ -428,9 +432,11 @@ bool Engine::createSwapchain() {
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO
         };
 
-        result = checkError(vkCreateSemaphore(logicalDevice_, &semaphoreCI, nullptr, &semaphore));
-        if (result != VK_SUCCESS) return false;
-
+        result = checkError(
+            vkCreateSemaphore(logicalDevice_, &semaphoreCI, nullptr, &semaphore),
+            "failed to create semaphore"
+        ); if (result != VK_SUCCESS) return false;
+        
     }
 
     VkImageCreateInfo depthImageCI {
@@ -455,7 +461,8 @@ bool Engine::createSwapchain() {
     };
 
     result = checkError(
-        vmaCreateImage(vmaAllocator_, &depthImageCI, &allocationCI, &depthImage_, &depthImageAllocation_, nullptr)
+        vmaCreateImage(vmaAllocator_, &depthImageCI, &allocationCI, &depthImage_, &depthImageAllocation_, nullptr),
+        "failed to create depth image"
     ); if (result != VK_SUCCESS) return false;
 
     VkImageViewCreateInfo depthImageViewCI {
@@ -470,7 +477,11 @@ bool Engine::createSwapchain() {
         },
     };
 
-    result = checkError(vkCreateImageView(logicalDevice_, &depthImageViewCI, nullptr, &depthImageView_));
+    result = checkError(
+        vkCreateImageView(logicalDevice_, &depthImageViewCI, nullptr, &depthImageView_),
+        "failed to create depth image view"
+    );
+
     if (result != VK_SUCCESS) return false;
     else return true;
 
@@ -509,6 +520,23 @@ VkResult Engine::checkError(const VkResult result) {
 
     if (result != VK_SUCCESS) {
 
+        std::println(
+            stderr,
+            "vulkan function returned status: {}",
+            string_VkResult(result)
+        );
+        
+    }
+
+    return result;
+
+}
+
+VkResult Engine::checkError(const VkResult result, const char* errorString) {
+
+    if (result != VK_SUCCESS) {
+
+        std::print(stderr, "{} | ", errorString);
         std::println(
             stderr,
             "vulkan function returned status: {}",
