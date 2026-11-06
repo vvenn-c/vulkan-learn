@@ -9,6 +9,9 @@
 #define VOLK_IMPLEMENTATION
 #include <Volk/volk.h>
 
+#define VMA_IMPLEMENTATION
+#include <vma/vk_mem_alloc.h>
+
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_vulkan.h>
 
@@ -51,11 +54,20 @@ void Engine::initVulkan() {
     if (!findPhysicalDevice())
         throw std::runtime_error("could not find appropriate physical device");
 
+    if (!checkFormatSupported())
+        throw std::runtime_error("requested swapchain format is not supported by the surface");
+
     if (!findGraphicsQueueIndex())
         throw std::runtime_error("could not find compatible graphics queue");
 
     if (!createLogicalDevice())
         throw std::runtime_error("could not create logical device");
+
+    if (!initVMA())
+        throw std::runtime_error("could not initialize VMA");
+
+    if (!createSwapchain())
+        throw std::runtime_error("could not create swapchain");
 
 }
 
@@ -64,6 +76,14 @@ void Engine::loop() {
 }
 
 void Engine::cleanup() {
+
+    destroySwapchain();
+
+    if (vmaAllocator_) vmaDestroyAllocator(vmaAllocator_);
+
+    if (surface_) vkDestroySurfaceKHR(vulkanInstance_, surface_, nullptr);
+
+    if (logicalDevice_) vkDestroyDevice(logicalDevice_, nullptr);
 
     if (vulkanInstance_) vkDestroyInstance(vulkanInstance_, nullptr);
     volkFinalize();
@@ -153,6 +173,25 @@ bool Engine::findPhysicalDevice() {
         }
 
         Engine::physicalDevice_ = physicalDevices[0];
+
+    }
+
+    return false;
+
+}
+
+bool Engine::checkFormatSupported() {
+
+    uint32_t formatCount = 0;
+    vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice_, surface_, &formatCount, nullptr);
+
+    std::vector<VkSurfaceFormatKHR> surfaceFormats(formatCount);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice_, surface_, &formatCount, surfaceFormats.data());
+
+    for (const VkSurfaceFormatKHR &surfaceFormat : surfaceFormats) {
+
+        if (surfaceFormat.format == swapchainFormat_)
+            return true;
 
     }
 
@@ -285,6 +324,184 @@ bool Engine::createLogicalDevice() {
     }
 
     return true;
+
+}
+
+bool Engine::initVMA() {
+
+    VmaVulkanFunctions vmaFunctionsInfo{};
+
+    VmaAllocatorCreateInfo vmaAllocatorCI {
+        .flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT,
+        .physicalDevice = physicalDevice_,
+        .device = logicalDevice_,
+        .pVulkanFunctions = &vmaFunctionsInfo,
+        .instance = vulkanInstance_,
+        .vulkanApiVersion = vulkanVersion_
+    };
+
+    VkResult result = checkError(vmaImportVulkanFunctionsFromVolk(&vmaAllocatorCI, &vmaFunctionsInfo));
+    if (result != VK_SUCCESS) return false;
+
+    result = checkError(vmaCreateAllocator(&vmaAllocatorCI, &vmaAllocator_));
+    if (result != VK_SUCCESS) return false;
+    else return true;
+
+}
+
+bool Engine::createSwapchain() {
+
+    swapchainWidth_ = windowWidth_;
+    swapchainHeight_ = windowHeight_;
+
+    VkSurfaceCapabilitiesKHR surfaceCaps{};
+
+    VkResult result = 
+        checkError(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice_, surface_, &surfaceCaps));
+    if (result != VK_SUCCESS) return false;
+
+    // with a minimum of 2, get at least a minimum number of images as
+    // specified by the surface capabilities
+    uint32_t requestedImageCount = std::max(2u, surfaceCaps.minImageCount);
+
+    // zero means unlimited image count. 
+    // if the maximum image count is some number greater than zero,
+    // get the lesser number of images.
+    if (surfaceCaps.maxImageCount > 0)
+        requestedImageCount = std::min(requestedImageCount, surfaceCaps.maxImageCount);
+
+    // basically this makes sure we get at least 2, or as few as possible,
+    // as specified by the surface capabilities and no more.
+
+    VkSwapchainCreateInfoKHR swapchainCI {
+        .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+        .surface = surface_,
+        .minImageCount = requestedImageCount,
+        .imageFormat = swapchainFormat_,
+        .imageColorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR,
+        .imageExtent {
+            .width = swapchainWidth_,
+            .height = swapchainHeight_
+        },
+        .imageArrayLayers = 1,
+        .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+        .preTransform = surfaceCaps.currentTransform,
+        .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+        .presentMode = VK_PRESENT_MODE_FIFO_KHR
+    };
+
+    result = checkError(vkCreateSwapchainKHR(logicalDevice_, &swapchainCI, nullptr, &swapchain_));
+    if (result != VK_SUCCESS) return false;
+    
+    uint32_t imageCount = 0;
+    vkGetSwapchainImagesKHR(logicalDevice_, swapchain_, &imageCount, nullptr);
+
+    swapchainImages_.resize(imageCount);
+    vkGetSwapchainImagesKHR(logicalDevice_, swapchain_, &imageCount, swapchainImages_.data());
+    swapchainImageViews_.resize(imageCount);
+
+    for (size_t i = 0; i < swapchainImages_.size(); i++) {
+
+        VkImageViewCreateInfo imageViewCI {
+            .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+            .image = swapchainImages_[i],
+            .viewType = VK_IMAGE_VIEW_TYPE_2D,
+            .format = swapchainFormat_,
+            .subresourceRange {
+                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                .baseMipLevel = 0,
+                .levelCount = 1,
+                .baseArrayLayer = 0,
+                .layerCount = 1
+            },
+        };
+
+        result = checkError(vkCreateImageView(logicalDevice_, &imageViewCI, nullptr, &swapchainImageViews_[i]));
+        if (result != VK_SUCCESS) return false;
+
+    }
+
+    renderCompleteSemaphores_.resize(swapchainImages_.size());
+    for (VkSemaphore &semaphore : renderCompleteSemaphores_) {
+
+        VkSemaphoreCreateInfo semaphoreCI {
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO
+        };
+
+        result = checkError(vkCreateSemaphore(logicalDevice_, &semaphoreCI, nullptr, &semaphore));
+        if (result != VK_SUCCESS) return false;
+
+    }
+
+    VkImageCreateInfo depthImageCI {
+        .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+        .imageType = VK_IMAGE_TYPE_2D,
+        .format = depthImageFormat_,
+        .extent {
+            .width = swapchainWidth_,
+            .height = swapchainHeight_
+        },
+        .mipLevels = 1,
+        .arrayLayers = 1,
+        .samples = VK_SAMPLE_COUNT_1_BIT,
+        .tiling = VK_IMAGE_TILING_OPTIMAL,
+        .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
+    };
+
+    VmaAllocationCreateInfo allocationCI {
+        .flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT,
+        .usage = VMA_MEMORY_USAGE_AUTO
+    };
+
+    result = checkError(
+        vmaCreateImage(vmaAllocator_, &depthImageCI, &allocationCI, &depthImage_, &depthImageAllocation_, nullptr)
+    ); if (result != VK_SUCCESS) return false;
+
+    VkImageViewCreateInfo depthImageViewCI {
+        .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+        .image = depthImage_,
+        .viewType = VK_IMAGE_VIEW_TYPE_2D,
+        .format = depthImageFormat_,
+        .subresourceRange {
+            .aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
+            .levelCount = 1,
+            .layerCount = 1
+        },
+    };
+
+    result = checkError(vkCreateImageView(logicalDevice_, &depthImageViewCI, nullptr, &depthImageView_));
+    if (result != VK_SUCCESS) return false;
+    else return true;
+
+}
+
+void Engine::destroySwapchain() {
+
+    // destroy image views
+    for (VkImageView &swapchainImageView : swapchainImageViews_)
+        vkDestroyImageView(logicalDevice_, swapchainImageView, nullptr);
+    swapchainImageViews_.clear();
+
+    // destroy semaphores
+    for (VkSemaphore &semaphore : renderCompleteSemaphores_)
+        vkDestroySemaphore(logicalDevice_, semaphore, nullptr);
+    renderCompleteSemaphores_.clear();
+
+    if (swapchain_) {
+
+        vkDestroySwapchainKHR(logicalDevice_, swapchain_, nullptr);
+        swapchain_ = nullptr;
+
+    }
+
+    if (depthImageView_) {
+
+        vkDestroyImageView(logicalDevice_, depthImageView_, nullptr);
+        vmaDestroyImage(vmaAllocator_, depthImage_, depthImageAllocation_);
+        depthImageView_ = nullptr;
+        
+    }
 
 }
 
