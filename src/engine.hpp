@@ -24,6 +24,7 @@ private:
     VkSurfaceKHR surface = nullptr;
     VkInstance vulkanInstance = nullptr;
     VkPhysicalDevice physicalDevice = nullptr;
+    VkDevice logicalDevice = nullptr;
 
     uint32_t graphicsQueueFamilyIndex = UINT32_MAX;
     VkQueue graphicsQueue = nullptr;
@@ -39,6 +40,7 @@ private:
     bool createSurface();
     bool findPhysicalDevice();
     bool findGraphicsQueueIndex();
+    bool createLogicalDevice();
 
     // error handling stuff
     VkResult checkError(const VkResult result);
