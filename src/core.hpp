@@ -27,6 +27,7 @@ private:
     SDL_Window* window_ = nullptr;
     const char* windowName_;
     uint32_t windowWidth_, windowHeight_;
+    bool quit = false;
 
     // vulkan core stuff
     VkSurfaceKHR surface_ = nullptr;
@@ -66,9 +67,9 @@ private:
         VkSemaphore imageAcquiredSemaphore = nullptr;
     };
 
-    const static uint32_t maxFramesInFlight_ = 2;
-    uint32_t frameIndex_;
-    uint64_t nextSignalValue_;
+    constexpr static uint32_t maxFramesInFlight_ = 2;
+    uint32_t frameIndex_ = 0;
+    uint64_t nextSignalValue_ = maxFramesInFlight_ + 1;
 
     VkSemaphore timelineSemaphore_ = nullptr;
     std::array<FrameResources, maxFramesInFlight_> frameResources_;

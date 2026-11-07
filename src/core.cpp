@@ -89,6 +89,20 @@ void Core::initVulkan() {
 
 void Core::loop() {
 
+    while (!quit) {
+
+        SDL_Event event;
+        while (SDL_PollEvent(&event)) {
+            
+            if (event.type == SDL_EVENT_QUIT)
+                quit = true;
+
+        }
+
+        render();
+
+    }
+
 }
 
 void Core::render() {
@@ -138,7 +152,6 @@ void Core::render() {
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
         .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT
     };
-
     vkBeginCommandBuffer(res.commandBuffer, &commandBeginInfo);
 
     std::vector<VkImageMemoryBarrier2> layoutBarriers {
@@ -170,7 +183,7 @@ void Core::render() {
             .newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
             .image = depthImage_,
             .subresourceRange {
-                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                .aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
                 .baseMipLevel = 0,
                 .levelCount = 1,
                 .baseArrayLayer = 0,
@@ -184,7 +197,6 @@ void Core::render() {
         .imageMemoryBarrierCount = static_cast<uint32_t>(layoutBarriers.size()),
         .pImageMemoryBarriers = layoutBarriers.data()
     };
-
     vkCmdPipelineBarrier2(res.commandBuffer, &dependencyInfo);
 
     VkRenderingAttachmentInfo colorAttachInfo {
@@ -298,7 +310,6 @@ void Core::render() {
         .signalSemaphoreInfoCount = static_cast<uint32_t>(semaphoreSignals.size()),
         .pSignalSemaphoreInfos = semaphoreSignals.data()
     };
-
     vkQueueSubmit2(graphicsQueue_, 1, &submitInfo, VK_NULL_HANDLE);
 
     VkPresentInfoKHR presentInfo{
@@ -383,7 +394,7 @@ bool Core::createInstance() {
 
     VkInstanceCreateInfo instanceCI {
         .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-        .pNext = &debugInfo,
+        .pNext = nullptr,
         .pApplicationInfo = &appInfo,
         .enabledLayerCount = static_cast<uint32_t>(requestedLayers.size()),
         .ppEnabledLayerNames = requestedLayers.data(),
@@ -391,11 +402,16 @@ bool Core::createInstance() {
         .ppEnabledExtensionNames = requestedExtensions.data()
     };
 
-    VkResult result = checkError(vkCreateInstance(&instanceCI, nullptr, &vulkanInstance_));
-    volkLoadInstance(vulkanInstance_);
+    volkInitialize();
 
+    VkResult result = checkError(vkCreateInstance(&instanceCI, nullptr, &vulkanInstance_));
     if (result != VK_SUCCESS) return false;
-    else return true;
+    else {
+
+        volkLoadInstance(vulkanInstance_);
+        return true;
+
+    }
 
 }
 
@@ -515,8 +531,10 @@ bool Core::createLogicalDevice() {
         .pNext = &supportedFeatures12
     };
 
+    vkGetPhysicalDeviceFeatures2(physicalDevice_, &supportedFeatures);
+
     if (
-        !supportedFeatures13.dynamicRendering || 
+        !supportedFeatures13.dynamicRendering ||
         !supportedFeatures13.synchronization2 ||
         !supportedFeatures12.timelineSemaphore
     ) {
@@ -565,6 +583,7 @@ bool Core::createLogicalDevice() {
         .queueCreateInfoCount = 1,
         .pQueueCreateInfos = &graphicsQueueCI,
         .enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size()),
+        .ppEnabledExtensionNames = deviceExtensions.data(),
         .pEnabledFeatures = nullptr // features struct is set in pNext (for some reason ????)
     };
 
@@ -678,7 +697,7 @@ bool Core::createSwapchain() {
 
         result = checkError(
             vkCreateImageView(logicalDevice_, &imageViewCI, nullptr, &swapchainImageViews_[i]),
-            "failed to create image view"
+            "failed to create swapchain image view"
         ); if (result != VK_SUCCESS) return false;
         
     }
@@ -703,7 +722,8 @@ bool Core::createSwapchain() {
         .format = depthImageFormat_,
         .extent {
             .width = swapchainWidth_,
-            .height = swapchainHeight_
+            .height = swapchainHeight_,
+            .depth = 1
         },
         .mipLevels = 1,
         .arrayLayers = 1,
@@ -799,6 +819,7 @@ VkShaderModule Core::createShaderModule(const std::string &fileName, shaderc_sha
         "could not create shader module"
     ); if (result != VK_SUCCESS) return nullptr;
 
+    std::println("{} compiled successfully.", fileName);
     return shaderModule;
 
 }
