@@ -76,6 +76,9 @@ void Core::initVulkan() {
     if (!createShaders())
         throw std::runtime_error("could not create shader modules");
 
+    if (pipeline_ = createGraphicsPipeline(); !pipeline_)
+        throw std::runtime_error("could not create graphics pipeline");
+
 }
 
 void Core::loop() {
@@ -548,6 +551,131 @@ VkShaderModule Core::createShaderModule(const std::string &fileName, shaderc_sha
     ); if (result != VK_SUCCESS) return nullptr;
 
     return shaderModule;
+
+}
+
+VkPipeline Core::createGraphicsPipeline() {
+
+    VkPipelineLayoutCreateInfo pipelineLayoutCI {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+        .setLayoutCount = 0,
+        .pushConstantRangeCount = 0
+    };
+
+    VkResult result = checkError(
+        vkCreatePipelineLayout(logicalDevice_, &pipelineLayoutCI, nullptr, &pipelineLayout_),
+        "could not create pipeline layout"
+    ); if (result != VK_SUCCESS) return nullptr;
+
+    const char* entryPoint = "main";
+    std::vector<VkPipelineShaderStageCreateInfo> shaderStages {
+        {
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            .stage = VK_SHADER_STAGE_VERTEX_BIT,
+            .module = vertexShader_,
+            .pName = entryPoint
+        },
+        {
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
+            .module = fragmentShader_,
+            .pName = entryPoint
+        }
+    };
+
+    VkPipelineVertexInputStateCreateInfo vertexInputCI {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO
+    };
+
+    VkPipelineInputAssemblyStateCreateInfo inputAssemblyCI {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+        .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST
+    };
+
+    VkPipelineDepthStencilStateCreateInfo depthStencilCI {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+        .depthTestEnable = VK_TRUE,
+        .depthWriteEnable = VK_TRUE,
+        .depthCompareOp = VK_COMPARE_OP_LESS,
+        .stencilTestEnable = VK_FALSE
+    };
+
+    VkPipelineViewportStateCreateInfo viewportCI {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+        .viewportCount = 1,
+        .pViewports = nullptr,
+        .scissorCount = 1,
+        .pScissors = nullptr
+    };
+
+    // backface culling !!!!!!!!!!!!!
+    VkPipelineRasterizationStateCreateInfo rasterCI {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+        .polygonMode = VK_POLYGON_MODE_FILL,
+        .cullMode = VK_CULL_MODE_BACK_BIT,
+        .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
+        .lineWidth = 1.0f
+    };
+
+    VkPipelineMultisampleStateCreateInfo multiSampleCI {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
+        .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT
+    };
+
+    VkPipelineColorBlendAttachmentState attachState {
+        .blendEnable = VK_FALSE,
+        .colorWriteMask = VK_COLOR_COMPONENT_R_BIT |
+                          VK_COLOR_COMPONENT_G_BIT |
+                          VK_COLOR_COMPONENT_B_BIT |
+                          VK_COLOR_COMPONENT_A_BIT
+    };
+
+    VkPipelineColorBlendStateCreateInfo blendCI {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+        .attachmentCount = 1,
+        .pAttachments = &attachState
+    };
+
+    std::vector<VkDynamicState> dynamicState {
+        VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR
+    };
+
+    VkPipelineDynamicStateCreateInfo dynamicStateCI {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+        .dynamicStateCount = static_cast<uint32_t>(dynamicState.size()),
+        .pDynamicStates = dynamicState.data()
+    };
+
+    VkPipelineRenderingCreateInfo renderCI {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
+        .colorAttachmentCount = 1,
+        .pColorAttachmentFormats = &swapchainFormat_,
+        .depthAttachmentFormat = depthImageFormat_
+    };
+
+    VkGraphicsPipelineCreateInfo pipelineCI {
+        .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+        .pNext = &renderCI,
+        .stageCount = static_cast<uint32_t>(shaderStages.size()),
+        .pStages = shaderStages.data(),
+        .pVertexInputState = &vertexInputCI,
+        .pInputAssemblyState = &inputAssemblyCI,
+        .pViewportState = &viewportCI,
+        .pRasterizationState = &rasterCI,
+        .pMultisampleState = &multiSampleCI,
+        .pDepthStencilState = &depthStencilCI,
+        .pColorBlendState = &blendCI,
+        .pDynamicState = &dynamicStateCI,
+        .layout = pipelineLayout_,
+        .renderPass = VK_NULL_HANDLE
+    };
+
+    VkPipeline newPipeline;
+    result = checkError(
+        vkCreateGraphicsPipelines(logicalDevice_, nullptr, 1, &pipelineCI, nullptr, &newPipeline)
+    ); if (result != VK_SUCCESS) return nullptr;
+
+    return newPipeline;
 
 }
 

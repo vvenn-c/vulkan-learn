@@ -56,6 +56,9 @@ private:
     VkShaderModule vertexShader_ = nullptr;
     VkShaderModule fragmentShader_ = nullptr;
 
+    VkPipelineLayout pipelineLayout_ = nullptr;
+    VkPipeline pipeline_ = nullptr;
+
     // main
     void initWindow();
     void initVulkan();
@@ -74,6 +77,7 @@ private:
     bool createShaders();
 
     VkShaderModule createShaderModule(const std::string &fileName, shaderc_shader_kind kind);
+    VkPipeline createGraphicsPipeline();
 
     void destroySwapchain();
 
