@@ -2,6 +2,7 @@
 #include <stdexcept>
 #include <cstdio>
 #include <vector>
+#include <string>
 
 #include <vulkan/vulkan.h>
 #include <vulkan/vk_enum_string_helper.h>
@@ -15,7 +16,10 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_vulkan.h>
 
+#include "shaderc/shaderc.hpp"
+
 #include "core.hpp"
+#include "utils.hpp"
 
 void Core::run() {
 
@@ -68,6 +72,9 @@ void Core::initVulkan() {
 
     if (!createSwapchain())
         throw std::runtime_error("could not create swapchain");
+    
+    if (!createShaders())
+        throw std::runtime_error("could not create shader modules");
 
 }
 
@@ -486,6 +493,64 @@ bool Core::createSwapchain() {
 
 }
 
+bool Core::createShaders() {
+
+    if (vertexShader_ = createShaderModule("shader.vert", shaderc_vertex_shader); !vertexShader_)
+        return false;
+
+    if (fragmentShader_ = createShaderModule("shader.frag", shaderc_fragment_shader); !fragmentShader_)
+        return false;
+
+    return true;
+
+}
+
+VkShaderModule Core::createShaderModule(const std::string &fileName, shaderc_shader_kind kind) {
+
+    const std::string shaderPath = "src/shaders/" + fileName;
+    const std::string source = readTextFile(shaderPath);
+    if (source.empty()) {
+
+        std::println(stderr, "could not find shader file named {}", fileName);
+        return nullptr;
+
+    }
+
+    std::println("compiling shader: {}", shaderPath);
+    shaderc::Compiler compiler;
+    shaderc::CompileOptions options;
+
+    options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_4);
+    options.SetTargetSpirv(shaderc_spirv_version_1_6);
+    options.SetOptimizationLevel(shaderc_optimization_level_performance);
+
+    shaderc::CompilationResult compResult = 
+        compiler.CompileGlslToSpv(source, kind, fileName.c_str(), options);
+
+    if (compResult.GetCompilationStatus() != shaderc_compilation_status_success) {
+
+        std::println(stderr, "shader compilation status: {}", compResult.GetErrorMessage());
+        return nullptr;
+
+    }
+
+    const size_t shaderSize = (compResult.cend() - compResult.cbegin()) * sizeof(uint32_t);
+    VkShaderModuleCreateInfo shaderModuleCI {
+        .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+        .codeSize = shaderSize,
+        .pCode = compResult.cbegin()
+    };
+
+    VkShaderModule shaderModule = nullptr;
+    VkResult result = checkError(
+        vkCreateShaderModule(logicalDevice_, &shaderModuleCI, nullptr, &shaderModule),
+        "could not create shader module"
+    ); if (result != VK_SUCCESS) return nullptr;
+
+    return shaderModule;
+
+}
+
 void Core::destroySwapchain() {
 
     // destroy image views
@@ -512,39 +577,6 @@ void Core::destroySwapchain() {
         depthImageView_ = nullptr;
         
     }
-
-}
-
-VkResult Core::checkError(const VkResult result) {
-
-    if (result != VK_SUCCESS) {
-
-        std::println(
-            stderr,
-            "vulkan function returned status: {}",
-            string_VkResult(result)
-        );
-        
-    }
-
-    return result;
-
-}
-
-VkResult Core::checkError(const VkResult result, const char* errorString) {
-
-    if (result != VK_SUCCESS) {
-
-        std::print(stderr, "{} | ", errorString);
-        std::println(
-            stderr,
-            "vulkan function returned status: {}",
-            string_VkResult(result)
-        );
-        
-    }
-
-    return result;
 
 }
 

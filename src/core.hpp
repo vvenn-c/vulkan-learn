@@ -1,9 +1,11 @@
 #include <cstdint>
 #include <vector>
+#include <string>
 
 #include <vulkan/vulkan.h>
 #include <vma/vk_mem_alloc.h>
 #include <SDL3/SDL.h>
+#include <shaderc/shaderc.hpp>
 
 class Core {
 
@@ -51,6 +53,9 @@ private:
     constexpr static VkFormat swapchainFormat_ = VK_FORMAT_B8G8R8A8_SRGB;
     constexpr static VkFormat depthImageFormat_ = VK_FORMAT_D32_SFLOAT;
 
+    VkShaderModule vertexShader_ = nullptr;
+    VkShaderModule fragmentShader_ = nullptr;
+
     // main
     void initWindow();
     void initVulkan();
@@ -66,12 +71,11 @@ private:
     bool createLogicalDevice();
     bool initVMA();
     bool createSwapchain();
+    bool createShaders();
+
+    VkShaderModule createShaderModule(const std::string &fileName, shaderc_shader_kind kind);
 
     void destroySwapchain();
-
-    // error handling stuff
-    VkResult checkError(const VkResult result);
-    VkResult checkError(const VkResult result, const char* errorString);
 
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
         VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,

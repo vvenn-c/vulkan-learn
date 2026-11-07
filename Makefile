@@ -6,7 +6,7 @@ CXXFLAGS := -std=c++26 -O2 -DVK_NO_PROTOTYPES \
 	-I$(VULKAN)/Include \
 	-L$(VULKAN)/Lib
 
-VULKAN_LIBS := -lvulkan-1
+VULKAN_LIBS := -lvulkan-1 -lshaderc_shared
 SDL_LIBS := -lSDL3
 SYSTEM_LIBS := -lstdc++exp
 
