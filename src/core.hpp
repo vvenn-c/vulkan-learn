@@ -45,6 +45,7 @@ private:
     std::vector<VkImage> swapchainImages_;
     std::vector<VkImageView> swapchainImageViews_;
     std::vector<VkSemaphore> renderCompleteSemaphores_;
+    bool requireSwapchainRecreate_ = false;
 
     VkImage depthImage_ = nullptr;
     VkImageView depthImageView_ = nullptr;
@@ -59,11 +60,26 @@ private:
     VkPipelineLayout pipelineLayout_ = nullptr;
     VkPipeline pipeline_ = nullptr;
 
+    struct FrameResources {
+        VkCommandPool commandPool = nullptr;
+        VkCommandBuffer commandBuffer = nullptr;
+        VkSemaphore imageAcquiredSemaphore = nullptr;
+    };
+
+    const static uint32_t maxFramesInFlight_ = 2;
+    uint32_t frameIndex_;
+    uint64_t nextSignalValue_;
+
+    VkSemaphore timelineSemaphore_ = nullptr;
+    std::array<FrameResources, maxFramesInFlight_> frameResources_;
+
     // main
     void initWindow();
     void initVulkan();
     void loop();
     void cleanup();
+
+    void render();
 
     // vulkan init helpers
     bool createInstance();
@@ -75,6 +91,8 @@ private:
     bool initVMA();
     bool createSwapchain();
     bool createShaders();
+    bool createSyncResources();
+    bool createCommandBuffers();
 
     VkShaderModule createShaderModule(const std::string &fileName, shaderc_shader_kind kind);
     VkPipeline createGraphicsPipeline();
