@@ -391,8 +391,7 @@ bool Core::createSwapchain() {
     };
 
     result = checkError(
-        vkCreateSwapchainKHR(logicalDevice_, &swapchainCI, nullptr, &swapchain_),
-        "failed to create the swapchain"
+        vkCreateSwapchainKHR(logicalDevice_, &swapchainCI, nullptr, &swapchain_)
     ); if (result != VK_SUCCESS) return false;
     
     uint32_t imageCount = 0;
